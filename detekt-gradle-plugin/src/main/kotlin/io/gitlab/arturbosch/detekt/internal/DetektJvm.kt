@@ -3,29 +3,23 @@ package io.gitlab.arturbosch.detekt.internal
 import io.gitlab.arturbosch.detekt.DetektPlugin
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
-import org.gradle.api.internal.HasConvention
-import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.tasks.SourceSet
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
+import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
 internal class DetektJvm(private val project: Project) {
-    private val SourceSet.kotlin: SourceDirectorySet
-        get() = ((this as HasConvention).convention.plugins["kotlin"] as? KotlinSourceSet)?.kotlin
-            ?: project.objects.sourceDirectorySet("empty", "Empty kotlin source set")
-
     fun registerTasks(extension: DetektExtension) {
-        project.convention.getPlugin(JavaPluginConvention::class.java).sourceSets.all { sourceSet ->
-            project.registerJvmDetektTask(extension, sourceSet)
-            project.registerJvmCreateBaselineTask(extension, sourceSet)
+        (project.extensions.getByName("kotlin") as KotlinProjectExtension).sourceSets.all { sourceSet ->
+            project.registerJvmDetektTask(extension, sourceSet.kotlin)
+            project.registerJvmCreateBaselineTask(extension, sourceSet.kotlin)
         }
     }
 
-    private fun Project.registerJvmDetektTask(extension: DetektExtension, sourceSet: SourceSet) {
+    private fun Project.registerJvmDetektTask(extension: DetektExtension, sourceSet: SourceDirectorySet) {
         registerDetektTask(DetektPlugin.DETEKT_TASK_NAME + sourceSet.name.capitalize(), extension) {
-            source = sourceSet.kotlin
-            classpath.setFrom(sourceSet.compileClasspath.existingFiles(), sourceSet.output.classesDirs.existingFiles())
+            source = sourceSet
+            classpath.setClasspath(sourceSet)
             // If a baseline file is configured as input file, it must exist to be configured, otherwise the task fails.
             // We try to find the configured baseline or alternatively a specific variant matching this task.
             extension.baseline?.existingVariantOrBaseFile(sourceSet.name)?.let { baselineFile ->
@@ -36,14 +30,18 @@ internal class DetektJvm(private val project: Project) {
         }
     }
 
-    private fun Project.registerJvmCreateBaselineTask(extension: DetektExtension, sourceSet: SourceSet) {
+    private fun Project.registerJvmCreateBaselineTask(extension: DetektExtension, sourceSet: SourceDirectorySet) {
         registerCreateBaselineTask(DetektPlugin.BASELINE_TASK_NAME + sourceSet.name.capitalize(), extension) {
-            source = sourceSet.kotlin
-            classpath.setFrom(sourceSet.compileClasspath.existingFiles(), sourceSet.output.classesDirs.existingFiles())
+            source = sourceSet
+            classpath.setClasspath(sourceSet)
             val variantBaselineFile = extension.baseline?.addVariantName(sourceSet.name)
             baseline.set(project.layout.file(project.provider { variantBaselineFile }))
             description = "EXPERIMENTAL: Creates detekt baseline for ${sourceSet.name} classes with type resolution"
         }
+    }
+
+    private fun ConfigurableFileCollection.setClasspath(sourceSet: SourceDirectorySet) {
+        setFrom(sourceSet.sourceDirectories.existingFiles(), sourceSet.destinationDirectory.asFileTree.existingFiles())
     }
 
     private fun FileCollection.existingFiles() = filter { it.exists() }
