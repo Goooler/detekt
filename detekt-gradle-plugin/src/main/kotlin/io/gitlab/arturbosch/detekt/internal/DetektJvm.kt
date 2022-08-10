@@ -3,7 +3,6 @@ package io.gitlab.arturbosch.detekt.internal
 import io.gitlab.arturbosch.detekt.DetektPlugin
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
-import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
@@ -19,7 +18,8 @@ internal class DetektJvm(private val project: Project) {
     private fun Project.registerJvmDetektTask(extension: DetektExtension, sourceSet: SourceDirectorySet) {
         registerDetektTask(DetektPlugin.DETEKT_TASK_NAME + sourceSet.name.capitalize(), extension) {
             source = sourceSet
-            classpath.setClasspath(sourceSet)
+            source(sourceSet.sourceDirectories.existingFiles())
+            classpath.setFrom(sourceSet.destinationDirectory.asFileTree.existingFiles())
             // If a baseline file is configured as input file, it must exist to be configured, otherwise the task fails.
             // We try to find the configured baseline or alternatively a specific variant matching this task.
             extension.baseline?.existingVariantOrBaseFile(sourceSet.name)?.let { baselineFile ->
@@ -33,15 +33,12 @@ internal class DetektJvm(private val project: Project) {
     private fun Project.registerJvmCreateBaselineTask(extension: DetektExtension, sourceSet: SourceDirectorySet) {
         registerCreateBaselineTask(DetektPlugin.BASELINE_TASK_NAME + sourceSet.name.capitalize(), extension) {
             source = sourceSet
-            classpath.setClasspath(sourceSet)
+            source(sourceSet.sourceDirectories.existingFiles())
+            classpath.setFrom(sourceSet.destinationDirectory.asFileTree.existingFiles())
             val variantBaselineFile = extension.baseline?.addVariantName(sourceSet.name)
             baseline.set(project.layout.file(project.provider { variantBaselineFile }))
             description = "EXPERIMENTAL: Creates detekt baseline for ${sourceSet.name} classes with type resolution"
         }
-    }
-
-    private fun ConfigurableFileCollection.setClasspath(sourceSet: SourceDirectorySet) {
-        setFrom(sourceSet.sourceDirectories.existingFiles(), sourceSet.destinationDirectory.asFileTree.existingFiles())
     }
 
     private fun FileCollection.existingFiles() = filter { it.exists() }
