@@ -4,7 +4,6 @@ import io.gitlab.arturbosch.detekt.DetektPlugin
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
@@ -41,8 +40,6 @@ internal class DetektJvm(private val project: Project) {
     }
 
     private fun ConfigurableFileCollection.setClasspath(sourceSet: SourceDirectorySet) {
-        setFrom(sourceSet.sourceDirectories.existingFiles(), sourceSet.destinationDirectory.asFileTree.existingFiles())
+        setFrom(sourceSet.destinationDirectory.asFileTree, sourceSet.classesDirectory.get().asFileTree)
     }
-
-    private fun FileCollection.existingFiles() = filter { it.exists() }
 }
