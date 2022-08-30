@@ -8,42 +8,58 @@ import io.gitlab.arturbosch.detekt.extensions.DetektReports
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.androidJvm
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.jvm
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJvmAndroidCompilation
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.targets
 import java.io.File
 
 internal class DetektMultiplatform(private val project: Project) {
 
-    fun registerTasks(extension: DetektExtension) {
+    fun registerMultiplatformTasks(extension: DetektExtension) {
         project.registerMultiplatformTasks(extension)
     }
 
-    private fun Project.registerMultiplatformTasks(extension: DetektExtension) {
-        project.extensions.getByType(KotlinMultiplatformExtension::class.java).targets.all { target ->
-            target.compilations.all { compilation ->
-                val inputSource = compilation.kotlinSourceSets
-                    .map { it.kotlin.sourceDirectories }
-                    .fold(project.files() as FileCollection) { collection, next -> collection.plus(next) }
+    fun registerJvmTasks(extension: DetektExtension) {
+        project.registerJvmTasks(extension)
+    }
 
-                if (compilation is KotlinJvmAndroidCompilation) {
-                    project.registerMultiplatformTasksForAndroidTarget(
-                        compilation = compilation,
-                        target = target,
-                        extension = extension,
-                        inputSource = inputSource
-                    )
-                } else {
-                    project.registerMultiplatformTasksForNonAndroidTarget(
-                        compilation = compilation,
-                        target = target,
-                        extension = extension,
-                        inputSource = inputSource
-                    )
-                }
+    private fun Project.registerMultiplatformTasks(extension: DetektExtension) {
+        project.extensions.getByType(KotlinMultiplatformExtension::class.java).targets.all {
+            registerMultiplatformTasks(extension, it)
+        }
+    }
+
+    private fun Project.registerJvmTasks(extension: DetektExtension) {
+        project.extensions.getByType(KotlinJvmProjectExtension::class.java).targets.forEach {
+            registerMultiplatformTasks(extension, it)
+        }
+    }
+
+    private fun registerMultiplatformTasks(extension: DetektExtension, target: KotlinTarget) {
+        target.compilations.all { compilation ->
+            val inputSource = compilation.kotlinSourceSets
+                .map { it.kotlin.sourceDirectories }
+                .fold(project.files() as FileCollection) { collection, next -> collection.plus(next) }
+
+            if (compilation is KotlinJvmAndroidCompilation) {
+                project.registerMultiplatformTasksForAndroidTarget(
+                    compilation = compilation,
+                    target = target,
+                    extension = extension,
+                    inputSource = inputSource
+                )
+            } else {
+                project.registerMultiplatformTasksForNonAndroidTarget(
+                    compilation = compilation,
+                    target = target,
+                    extension = extension,
+                    inputSource = inputSource
+                )
             }
         }
     }
