@@ -10,12 +10,13 @@ import org.gradle.api.file.FileCollection
 import org.jetbrains.kotlin.gradle.dsl.KotlinCommonOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinSingleTargetExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.androidJvm
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.jvm
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJvmAndroidCompilation
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.targets
 import java.io.File
 
 internal class DetektMultiplatform(private val project: Project) {
@@ -184,3 +185,10 @@ private fun Project.setReportOutputConvention(
 // native/js targets needs a different compiler classpath.
 private val KotlinTarget.runWithTypeResolution: Boolean
     get() = platformType in setOf(jvm, androidJvm)
+
+private val KotlinProjectExtension.targets: Iterable<KotlinTarget>
+    get() = when (this) {
+        is KotlinSingleTargetExtension<*> -> listOf(this.target)
+        is KotlinMultiplatformExtension -> targets
+        else -> error("Unexpected 'kotlin' extension $this")
+    }
