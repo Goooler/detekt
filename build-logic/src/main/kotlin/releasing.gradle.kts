@@ -26,7 +26,7 @@ project.afterEvaluate {
         draft.set(true)
         targetCommitish.set("main")
         body {
-            var changelog = project.file("website/docs/introduction/changelog.md").readText()
+            var changelog = project.file("website/src/pages/changelog.md").readText()
             val nextNonBetaVersion = project.version.toString()
             val sectionStart = "#### $nextNonBetaVersion"
             changelog = changelog.substring(changelog.indexOf(sectionStart))
@@ -38,7 +38,10 @@ project.afterEvaluate {
             files(
                 cliBuildDir.resolve("libs/detekt-cli-${project.version}-all.jar"),
                 cliBuildDir.resolve("distributions/detekt-cli-${project.version}.zip"),
-                project(":detekt-formatting").buildDir.resolve("libs/detekt-formatting-${project.version}.jar")
+                project(":detekt-formatting").buildDir.resolve("libs/detekt-formatting-${project.version}.jar"),
+                project(":detekt-generator").buildDir.resolve("libs/detekt-generator-${project.version}-all.jar"),
+                project(":detekt-rules-ruleauthors").buildDir
+                    .resolve("libs/detekt-rules-ruleauthors-${project.version}.jar")
             )
         )
     }

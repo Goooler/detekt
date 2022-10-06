@@ -24,7 +24,7 @@ class DetektPrinter(private val arguments: GeneratorArgs) {
             }
         }
         yamlWriter.write(arguments.configPath, "default-detekt-config") {
-            ConfigPrinter.print(pages.filterNot { it.ruleSet.name == "formatting" })
+            ConfigPrinter.print(pages.filterNot { it.ruleSet.name == "formatting" || it.ruleSet.name == "ruleauthors" })
         }
         propertiesWriter.write(arguments.configPath, "deprecation") {
             // We intentionally not filter for "formatting" as we want to be able to deprecate
@@ -35,6 +35,17 @@ class DetektPrinter(private val arguments: GeneratorArgs) {
             yaml {
                 printRuleSetPage(pages.first { it.ruleSet.name == "formatting" })
             }
+        }
+        yamlWriter.write(Paths.get("../detekt-rules-ruleauthors/src/main/resources/config"), "config") {
+            yaml {
+                printRuleSetPage(pages.first { it.ruleSet.name == "ruleauthors" })
+            }
+        }
+    }
+
+    fun printCustomRuleConfig(pages: List<RuleSetPage>, folder: String) {
+        yamlWriter.write(Paths.get(folder), "config") {
+            ConfigPrinter.printCustomRuleConfig(pages)
         }
     }
 

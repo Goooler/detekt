@@ -10,6 +10,7 @@ import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.RuleSetId
 import io.gitlab.arturbosch.detekt.api.RuleSetProvider
 import io.gitlab.arturbosch.detekt.api.internal.CompilerResources
+import io.gitlab.arturbosch.detekt.api.internal.RequiresTypeResolution
 import io.gitlab.arturbosch.detekt.api.internal.whichDetekt
 import io.gitlab.arturbosch.detekt.api.internal.whichJava
 import io.gitlab.arturbosch.detekt.api.internal.whichOS
@@ -24,6 +25,7 @@ import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.smartcasts.DataFlowValueFactoryImpl
+import kotlin.reflect.full.hasAnnotation
 
 private typealias FindingsResult = List<Map<RuleSetId, List<Finding>>>
 
@@ -41,7 +43,6 @@ internal class Analyzer(
     ): Map<RuleSetId, List<Finding>> {
         val languageVersionSettings = settings.environment.configuration.languageVersionSettings
 
-        @Suppress("DEPRECATION")
         val dataFlowValueFactory = DataFlowValueFactoryImpl(languageVersionSettings)
         val compilerResources = CompilerResources(languageVersionSettings, dataFlowValueFactory)
         val findingsPerFile: FindingsResult =
@@ -50,6 +51,10 @@ internal class Analyzer(
             } else {
                 runSync(ktFiles, bindingContext, compilerResources)
             }
+
+        if (bindingContext == BindingContext.EMPTY) {
+            warnAboutEnabledRequiresTypeResolutionRules()
+        }
 
         val findingsPerRuleSet = HashMap<RuleSetId, List<Finding>>()
         for (findings in findingsPerFile) {
@@ -113,6 +118,9 @@ internal class Analyzer(
 
         val (correctableRules, otherRules) = activeRuleSetsToRuleSetConfigs
             .flatMap { (ruleSet, _) -> ruleSet.rules.asSequence() }
+            .filter { rule ->
+                bindingContext != BindingContext.EMPTY || !rule::class.hasAnnotation<RequiresTypeResolution>()
+            }
             .partition { isCorrectable(it) }
 
         val result = HashMap<RuleSetId, MutableList<Finding>>()
@@ -134,6 +142,19 @@ internal class Analyzer(
         executeRules(otherRules)
 
         return result
+    }
+
+    private fun warnAboutEnabledRequiresTypeResolutionRules() {
+        providers.asSequence()
+            .map { it to config.subConfig(it.ruleSetId) }
+            .filter { (_, ruleSetConfig) -> ruleSetConfig.isActive() }
+            .map { (provider, ruleSetConfig) -> provider.instance(ruleSetConfig) to ruleSetConfig }
+            .flatMap { (ruleSet, _) -> ruleSet.rules.asSequence() }
+            .filter { rule -> (rule as? Rule)?.active == true }
+            .filter { rule -> rule::class.hasAnnotation<RequiresTypeResolution>() }
+            .forEach { rule ->
+                settings.debug { "The rule '${rule.ruleId}' requires type resolution but it was run without it." }
+            }
     }
 }
 

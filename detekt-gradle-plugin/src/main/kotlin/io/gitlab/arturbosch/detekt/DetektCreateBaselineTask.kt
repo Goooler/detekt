@@ -12,11 +12,11 @@ import io.gitlab.arturbosch.detekt.invoke.CreateBaselineArgument
 import io.gitlab.arturbosch.detekt.invoke.DebugArgument
 import io.gitlab.arturbosch.detekt.invoke.DetektInvoker
 import io.gitlab.arturbosch.detekt.invoke.DisableDefaultRuleSetArgument
-import io.gitlab.arturbosch.detekt.invoke.FailFastArgument
 import io.gitlab.arturbosch.detekt.invoke.InputArgument
 import io.gitlab.arturbosch.detekt.invoke.JvmTargetArgument
 import io.gitlab.arturbosch.detekt.invoke.ParallelArgument
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -26,6 +26,7 @@ import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Console
 import org.gradle.api.tasks.IgnoreEmptyDirectories
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
@@ -79,11 +80,6 @@ abstract class DetektCreateBaselineTask : SourceTask() {
 
     @get:Input
     @get:Optional
-    @Deprecated("Please use the buildUponDefaultConfig and allRules flags instead.", ReplaceWith("allRules"))
-    abstract val failFast: Property<Boolean>
-
-    @get:Input
-    @get:Optional
     abstract val ignoreFailures: Property<Boolean>
 
     @get:Input
@@ -113,6 +109,11 @@ abstract class DetektCreateBaselineTask : SourceTask() {
         get() = jvmTargetProp.get()
         set(value) = jvmTargetProp.set(value)
 
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:Optional
+    abstract val jdkHome: DirectoryProperty
+
     @get:Internal
     internal val arguments: Provider<List<String>> = project.provider {
         listOf(
@@ -125,7 +126,6 @@ abstract class DetektCreateBaselineTask : SourceTask() {
             DebugArgument(debug.getOrElse(false)),
             ParallelArgument(parallel.getOrElse(false)),
             BuildUponDefaultConfigArgument(buildUponDefaultConfig.getOrElse(false)),
-            FailFastArgument(@Suppress("DEPRECATION") failFast.getOrElse(false)),
             AutoCorrectArgument(autoCorrect.getOrElse(false)),
             AllRulesArgument(allRules.getOrElse(false)),
             BasePathArgument(basePathProp.orNull),
@@ -141,10 +141,6 @@ abstract class DetektCreateBaselineTask : SourceTask() {
 
     @TaskAction
     fun baseline() {
-        if (@Suppress("DEPRECATION") failFast.getOrElse(false)) {
-            logger.warn("'failFast' is deprecated. Please use 'buildUponDefaultConfig' together with 'allRules'.")
-        }
-
         DetektInvoker.create(task = this).invokeCli(
             arguments = arguments.get(),
             ignoreFailures = ignoreFailures.getOrElse(false),

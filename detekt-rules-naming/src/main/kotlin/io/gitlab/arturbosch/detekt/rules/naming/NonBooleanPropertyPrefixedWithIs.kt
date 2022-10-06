@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.builtins.isFunctionOrKFunctionTypeWithAnySuspendabil
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.typeBinding.createTypeBindingForReturnType
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isBoolean
@@ -59,10 +58,6 @@ class NonBooleanPropertyPrefixedWithIs(config: Config = Config.empty) : Rule(con
     }
 
     private fun validateDeclaration(declaration: KtCallableDeclaration) {
-        if (bindingContext == BindingContext.EMPTY) {
-            return
-        }
-
         val name = declaration.identifierName()
 
         if (name.startsWith("is") && name.length > 2 && !name[2].isLowerCase()) {
@@ -72,7 +67,7 @@ class NonBooleanPropertyPrefixedWithIs(config: Config = Config.empty) : Rule(con
 
             if (!typeName.isNullOrEmpty() &&
                 isNotBooleanType &&
-                !type.isBooleanFunctionReference()
+                !type.isBooleanFunction()
             ) {
                 report(
                     reportCodeSmell(declaration, name, typeName)
@@ -101,9 +96,9 @@ class NonBooleanPropertyPrefixedWithIs(config: Config = Config.empty) : Rule(con
         fqNameOrNull()
             ?.asString()
 
-    private fun KotlinType.isBooleanFunctionReference(): Boolean {
+    private fun KotlinType.isBooleanFunction(): Boolean {
         if (!isFunctionOrKFunctionTypeWithAnySuspendability) return false
 
-        return arguments.count() == 1 && arguments[0].type.isBoolean()
+        return arguments.isNotEmpty() && arguments.last().type.isBoolean()
     }
 }

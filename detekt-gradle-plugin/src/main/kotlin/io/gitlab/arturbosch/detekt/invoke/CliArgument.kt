@@ -1,6 +1,7 @@
 package io.gitlab.arturbosch.detekt.invoke
 
 import io.gitlab.arturbosch.detekt.extensions.DetektReportType
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFile
 import java.io.File
@@ -13,7 +14,6 @@ private const val PARALLEL_PARAMETER = "--parallel"
 private const val DISABLE_DEFAULT_RULESETS_PARAMETER = "--disable-default-rulesets"
 private const val BUILD_UPON_DEFAULT_CONFIG_PARAMETER = "--build-upon-default-config"
 private const val AUTO_CORRECT_PARAMETER = "--auto-correct"
-private const val FAIL_FAST_PARAMETER = "--fail-fast"
 private const val ALL_RULES_PARAMETER = "--all-rules"
 private const val REPORT_PARAMETER = "--report"
 private const val GENERATE_CONFIG_PARAMETER = "--generate-config"
@@ -21,6 +21,7 @@ private const val CREATE_BASELINE_PARAMETER = "--create-baseline"
 private const val CLASSPATH_PARAMETER = "--classpath"
 private const val LANGUAGE_VERSION_PARAMETER = "--language-version"
 private const val JVM_TARGET_PARAMETER = "--jvm-target"
+private const val JDK_HOME_PARAMETER = "--jdk-home"
 private const val BASE_PATH_PARAMETER = "--base-path"
 
 internal sealed class CliArgument {
@@ -58,6 +59,10 @@ internal data class JvmTargetArgument(val jvmTarget: String?) : CliArgument() {
     override fun toArgument() = jvmTarget?.let { listOf(JVM_TARGET_PARAMETER, it) }.orEmpty()
 }
 
+internal data class JdkHomeArgument(val jdkHome: DirectoryProperty) : CliArgument() {
+    override fun toArgument() = jdkHome.orNull?.let { listOf(JDK_HOME_PARAMETER, it.toString()) }.orEmpty()
+}
+
 internal data class BaselineArgument(val baseline: RegularFile?) : CliArgument() {
     override fun toArgument() = baseline?.let { listOf(BASELINE_PARAMETER, it.asFile.absolutePath) }.orEmpty()
 }
@@ -77,7 +82,7 @@ internal data class BasePathArgument(val basePath: String?) : CliArgument() {
 
 internal data class ConfigArgument(val files: Collection<File>) : CliArgument() {
 
-    constructor(configFile: File) : this(listOf(configFile))
+    constructor(configFile: RegularFile) : this(listOf(configFile.asFile))
     constructor(config: FileCollection) : this(config.files)
 
     override fun toArgument() = if (files.isEmpty()) {
@@ -102,8 +107,6 @@ internal data class DisableDefaultRuleSetArgument(
 internal data class BuildUponDefaultConfigArgument(
     override val value: Boolean
 ) : BoolCliArgument(value, BUILD_UPON_DEFAULT_CONFIG_PARAMETER)
-
-internal data class FailFastArgument(override val value: Boolean) : BoolCliArgument(value, FAIL_FAST_PARAMETER)
 
 internal data class AllRulesArgument(override val value: Boolean) : BoolCliArgument(value, ALL_RULES_PARAMETER)
 

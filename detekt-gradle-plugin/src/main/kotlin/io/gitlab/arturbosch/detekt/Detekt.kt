@@ -17,8 +17,8 @@ import io.gitlab.arturbosch.detekt.invoke.DebugArgument
 import io.gitlab.arturbosch.detekt.invoke.DefaultReportArgument
 import io.gitlab.arturbosch.detekt.invoke.DetektInvoker
 import io.gitlab.arturbosch.detekt.invoke.DisableDefaultRuleSetArgument
-import io.gitlab.arturbosch.detekt.invoke.FailFastArgument
 import io.gitlab.arturbosch.detekt.invoke.InputArgument
+import io.gitlab.arturbosch.detekt.invoke.JdkHomeArgument
 import io.gitlab.arturbosch.detekt.invoke.JvmTargetArgument
 import io.gitlab.arturbosch.detekt.invoke.LanguageVersionArgument
 import io.gitlab.arturbosch.detekt.invoke.ParallelArgument
@@ -26,6 +26,7 @@ import io.gitlab.arturbosch.detekt.invoke.isDryRunEnabled
 import org.gradle.api.Action
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
@@ -38,6 +39,7 @@ import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Console
 import org.gradle.api.tasks.IgnoreEmptyDirectories
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
@@ -96,6 +98,11 @@ abstract class Detekt @Inject constructor(
         get() = jvmTargetProp.get()
         set(value) = jvmTargetProp.set(value)
 
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:Optional
+    abstract val jdkHome: DirectoryProperty
+
     @get:Internal
     internal abstract val debugProp: Property<Boolean>
     var debug: Boolean
@@ -123,15 +130,6 @@ abstract class Detekt @Inject constructor(
         @Input
         get() = buildUponDefaultConfigProp.getOrElse(false)
         set(value) = buildUponDefaultConfigProp.set(value)
-
-    @get:Internal
-    internal abstract val failFastProp: Property<Boolean>
-
-    @Deprecated("Please use the buildUponDefaultConfig and allRules flags instead.", ReplaceWith("allRules"))
-    var failFast: Boolean
-        @Input
-        get() = failFastProp.getOrElse(false)
-        set(value) = failFastProp.set(value)
 
     @get:Internal
     internal abstract val allRulesProp: Property<Boolean>
@@ -216,6 +214,7 @@ abstract class Detekt @Inject constructor(
             ClasspathArgument(classpath),
             LanguageVersionArgument(languageVersionProp.orNull),
             JvmTargetArgument(jvmTargetProp.orNull),
+            JdkHomeArgument(jdkHome),
             ConfigArgument(config),
             BaselineArgument(baseline.orNull),
             DefaultReportArgument(DetektReportType.XML, xmlReportFile.orNull),
@@ -226,7 +225,6 @@ abstract class Detekt @Inject constructor(
             DebugArgument(debugProp.getOrElse(false)),
             ParallelArgument(parallelProp.getOrElse(false)),
             BuildUponDefaultConfigArgument(buildUponDefaultConfigProp.getOrElse(false)),
-            FailFastArgument(failFastProp.getOrElse(false)),
             AllRulesArgument(allRulesProp.getOrElse(false)),
             AutoCorrectArgument(autoCorrectProp.getOrElse(false)),
             BasePathArgument(basePathProp.orNull),
@@ -253,10 +251,6 @@ abstract class Detekt @Inject constructor(
 
     @TaskAction
     fun check() {
-        if (failFastProp.getOrElse(false)) {
-            logger.warn("'failFast' is deprecated. Please use 'buildUponDefaultConfig' together with 'allRules'.")
-        }
-
         DetektInvoker.create(task = this, isDryRun = isDryRun).invokeCli(
             arguments = arguments.get(),
             ignoreFailures = ignoreFailures,

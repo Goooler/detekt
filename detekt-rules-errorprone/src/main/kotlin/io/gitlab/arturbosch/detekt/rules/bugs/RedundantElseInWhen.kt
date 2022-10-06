@@ -11,7 +11,6 @@ import io.gitlab.arturbosch.detekt.api.internal.ActiveByDefault
 import io.gitlab.arturbosch.detekt.api.internal.RequiresTypeResolution
 import org.jetbrains.kotlin.diagnostics.Errors
 import org.jetbrains.kotlin.psi.KtWhenExpression
-import org.jetbrains.kotlin.resolve.BindingContext
 
 /**
  * Turn on this rule to flag `when` expressions that contain a redundant `else` case. This occurs when it can be
@@ -60,6 +59,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
  */
 @RequiresTypeResolution
 @ActiveByDefault(since = "1.2.0")
+@Deprecated("Rule deprecated as compiler performs this check by default")
 class RedundantElseInWhen(config: Config = Config.empty) : Rule(config) {
 
     override val issue: Issue = Issue(
@@ -72,7 +72,6 @@ class RedundantElseInWhen(config: Config = Config.empty) : Rule(config) {
     override fun visitWhenExpression(whenExpression: KtWhenExpression) {
         super.visitWhenExpression(whenExpression)
 
-        if (bindingContext == BindingContext.EMPTY) return
         val elseEntry = whenExpression.entries.lastOrNull { it.isElse } ?: return
         val compilerReports = bindingContext.diagnostics.forElement(elseEntry)
         if (compilerReports.any { it.factory == Errors.REDUNDANT_ELSE_IN_WHEN }) {
