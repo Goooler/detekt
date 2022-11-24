@@ -154,6 +154,7 @@ class DetektMultiplatformSpec {
                         }
                         android {
                             compileSdk = 30
+                            namespace = "io.gitlab.arturbosch.detekt.app"
                             sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
                             buildTypes {
                                 release {
@@ -338,11 +339,7 @@ private fun setupProject(projectLayoutAction: ProjectLayout.() -> Unit): DslGrad
 }
 
 private fun setupAndroidProject(projectLayoutAction: ProjectLayout.() -> Unit): DslGradleRunner {
-    val gradleRunner = setupProject { projectLayoutAction() }
-    gradleRunner.writeProjectFile("shared/src/androidMain/AndroidManifest.xml", manifestContent())
-    gradleRunner.writeProjectFile("shared/src/debug/AndroidManifest.xml", manifestContent())
-    gradleRunner.writeProjectFile("shared/src/release/AndroidManifest.xml", manifestContent())
-    return gradleRunner
+    return setupProject { projectLayoutAction() }
 }
 
 private fun setupMultiplatformProject(projectLayoutAction: ProjectLayout.() -> Unit): DslGradleRunner {

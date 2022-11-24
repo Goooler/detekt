@@ -1,6 +1,5 @@
 package io.gitlab.arturbosch.detekt.report
 
-import io.gitlab.arturbosch.detekt.manifestContent
 import io.gitlab.arturbosch.detekt.testkit.DslGradleRunner
 import io.gitlab.arturbosch.detekt.testkit.DslTestBuilder
 import io.gitlab.arturbosch.detekt.testkit.ProjectLayout
@@ -105,6 +104,7 @@ class ReportMergeSpec {
                     }
                     android {
                        compileSdk = 30
+                       namespace = "io.github.detekt.app"
                     }
                     dependencies {
                         implementation(project(":lib"))
@@ -122,6 +122,7 @@ class ReportMergeSpec {
                     }
                     android {
                        compileSdk = 30
+                       namespace = "io.github.detekt.lib"
                     }
                 """.trimIndent(),
                 srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidTest/java")
@@ -172,14 +173,6 @@ class ReportMergeSpec {
         )
 
         gradleRunner.setupProject()
-        gradleRunner.writeProjectFile(
-            "app/src/main/AndroidManifest.xml",
-            manifestContent("io.github.detekt.app")
-        )
-        gradleRunner.writeProjectFile(
-            "lib/src/main/AndroidManifest.xml",
-            manifestContent("io.github.detekt.lib")
-        )
         gradleRunner.runTasksAndCheckResult("detektMain", "reportMerge", "--continue") { result ->
             projectLayout.submodules.forEach { submodule ->
                 assertThat(result.task(":${submodule.name}:detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)

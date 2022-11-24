@@ -48,9 +48,7 @@ class DetektAndroidSpec {
                 )
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("app/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :app:detektMain")
@@ -125,7 +123,6 @@ class DetektAndroidSpec {
         }
         val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
             it.writeProjectFile("gradle.properties", "detekt.android.disabled=true")
-            it.writeProjectFile("app/src/main/AndroidManifest.xml", manifestContent())
         }
 
         @Test
@@ -174,9 +171,7 @@ class DetektAndroidSpec {
                 )
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :lib:detektMain")
@@ -267,9 +262,7 @@ class DetektAndroidSpec {
                 )
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("android_lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :android_lib:detektMain")
@@ -334,9 +327,7 @@ class DetektAndroidSpec {
                 srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidTest/java")
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :lib:detektMain")
@@ -387,9 +378,7 @@ class DetektAndroidSpec {
                 srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidTest/java")
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :lib:detektMain")
@@ -442,9 +431,7 @@ class DetektAndroidSpec {
                 srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidTest/java")
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :lib:detektMain")
@@ -497,9 +484,7 @@ class DetektAndroidSpec {
                 srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidTest/java")
             )
         }
-        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout).also {
-            it.writeProjectFile("lib/src/main/AndroidManifest.xml", manifestContent())
-        }
+        val gradleRunner = createGradleRunnerAndSetupProject(projectLayout)
 
         @Test
         @DisplayName("task :lib:detektMain")
@@ -552,7 +537,6 @@ class DetektAndroidSpec {
             val gradleRunner = createGradleRunnerAndSetupProject(projectLayout, dryRun = false).also {
                 it.projectFile("app/src/main/java").mkdirs()
                 it.projectFile("app/src/main/res/layout").mkdirs()
-                it.writeProjectFile("app/src/main/AndroidManifest.xml", manifestContent())
                 it.writeProjectFile(
                     "app/src/main/res/layout/activity_sample.xml",
                     SAMPLE_ACTIVITY_LAYOUT
@@ -589,11 +573,6 @@ class DetektAndroidSpec {
 internal fun isAndroidSdkInstalled() =
     System.getenv("ANDROID_SDK_ROOT") != null || System.getenv("ANDROID_HOME") != null
 
-internal fun manifestContent(packageName: String = "io.gitlab.arturbosch.detekt.app") = """
-    <manifest package="$packageName"
-        xmlns:android="http://schemas.android.com/apk/res/android"/>
-""".trimIndent()
-
 private val APP_PLUGIN_BLOCK = """
     plugins {
         id("com.android.application")
@@ -620,12 +599,14 @@ private val KOTLIN_ONLY_LIB_PLUGIN_BLOCK = """
 private val ANDROID_BLOCK = """
     android {
        compileSdk = 30
+       namespace = "io.gitlab.arturbosch.detekt.app"
     }
 """.trimIndent()
 
 private val ANDROID_BLOCK_WITH_FLAVOR = """
     android {
         compileSdk = 30
+        namespace = "io.gitlab.arturbosch.detekt.app"
         flavorDimensions("age", "name")
         productFlavors {
            create("harry") {
@@ -644,6 +625,7 @@ private val ANDROID_BLOCK_WITH_FLAVOR = """
 private val ANDROID_BLOCK_WITH_VIEW_BINDING = """
     android {
         compileSdk = 30
+        namespace = "io.gitlab.arturbosch.detekt.app"
         defaultConfig {
             applicationId = "io.gitlab.arturbosch.detekt.app"
             minSdk = 24
