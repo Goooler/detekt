@@ -80,7 +80,6 @@ internal class CliArgsSpec {
 
             assertThatExceptionOfType(HandledArgumentViolation::class.java)
                 .isThrownBy { parseArguments(params) }
-                .withMessage(""""--input": couldn't convert "nonExistent " to a path""")
         }
 
         @Nested

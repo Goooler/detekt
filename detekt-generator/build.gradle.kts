@@ -22,7 +22,7 @@ dependencies {
     implementation(projects.detektKotlinAnalysisApiStandalone)
     detektCli(projects.detektCli)
     implementation(projects.detektUtils)
-    implementation(libs.jcommander)
+    implementation(libs.clikt)
 
     testImplementation(projects.detektTestUtils)
     testImplementation(libs.assertj.core)
