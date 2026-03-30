@@ -59,6 +59,7 @@ class GeneratorArgs : CliktCommand() {
     val textReplacements: Map<String, String>
         get() = rawTextReplacements.associate { entry ->
             val idx = entry.indexOf('=')
+            require(idx >= 0) { "Expected key=value format for --replace option, got: '$entry'" }
             entry.substring(0, idx) to entry.substring(idx + 1)
         }
 
