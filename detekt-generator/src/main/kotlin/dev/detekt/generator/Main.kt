@@ -2,17 +2,15 @@
 
 package dev.detekt.generator
 
-import com.beust.jcommander.JCommander
+import com.github.ajalt.clikt.core.PrintHelpMessage
 import kotlin.system.exitProcess
 
-@Suppress("detekt.SpreadOperator")
 fun main(args: Array<String>) {
     val options = GeneratorArgs()
-    val parser = JCommander(options)
-    parser.parse(*args)
-
-    if (options.help) {
-        parser.usage()
+    try {
+        options.parse(args.toList())
+    } catch (e: PrintHelpMessage) {
+        println(e.command.getFormattedHelp())
         exitProcess(0)
     }
 

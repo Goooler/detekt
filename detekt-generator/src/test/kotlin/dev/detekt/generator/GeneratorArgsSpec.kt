@@ -1,6 +1,5 @@
 package dev.detekt.generator
 
-import com.beust.jcommander.JCommander
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -11,8 +10,7 @@ class GeneratorArgsSpec {
 
         private fun parse(vararg args: String): GeneratorArgs {
             val options = GeneratorArgs()
-            val parser = JCommander(options)
-            parser.parse("-i", ".", *args)
+            options.parse(listOf("-i", ".", *args))
             return options
         }
 
