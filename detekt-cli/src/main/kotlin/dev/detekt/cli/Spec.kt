@@ -13,7 +13,7 @@ import kotlin.io.path.relativeTo
 import kotlin.io.path.walk
 
 @Suppress("LongMethod")
-internal fun ParsedCliArguments.createSpec(output: Appendable, error: Appendable): ProcessingSpec {
+internal fun CliArgs.createSpec(output: Appendable, error: Appendable): ProcessingSpec {
     val args = this
     return ProcessingSpec {
         logging {
@@ -96,7 +96,7 @@ private fun asPatterns(rawValue: String): List<String> =
         .map { it.trim() }
         .toList()
 
-private fun ParsedCliArguments.toRunPolicy(): RulesSpec.RunPolicy {
+private fun CliArgs.toRunPolicy(): RulesSpec.RunPolicy {
     val parts = runRule?.split(":")
         ?: return if (disableDefaultRuleSets) DisableDefaultRuleSets else NoRestrictions
     require(parts.size == 2) { "Pattern 'RuleSetId:RuleName' expected." }

@@ -494,4 +494,4 @@ internal class CliArgsSpec {
     }
 }
 
-private fun ParsedCliArguments.toSpec() = createSpec(NullPrintStream(), NullPrintStream())
+private fun CliArgs.toSpec() = createSpec(NullPrintStream(), NullPrintStream())

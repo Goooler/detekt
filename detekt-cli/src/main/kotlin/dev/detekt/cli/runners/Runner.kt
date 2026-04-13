@@ -1,6 +1,6 @@
 package dev.detekt.cli.runners
 
-import dev.detekt.cli.ParsedCliArguments
+import dev.detekt.cli.CliArgs
 import dev.detekt.cli.createSpec
 import dev.detekt.tooling.api.AnalysisResult
 import dev.detekt.tooling.api.Detekt
@@ -16,7 +16,7 @@ class Runner(private val spec: ProcessingSpec) :
 
     @NotApiButProbablyUsedByUsers
     constructor(
-        arguments: ParsedCliArguments,
+        arguments: CliArgs,
         outputPrinter: Appendable,
         errorPrinter: Appendable,
     ) : this(arguments.createSpec(outputPrinter, errorPrinter))

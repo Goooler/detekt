@@ -8,15 +8,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import dev.detekt.tooling.api.AnalysisMode
-import dev.detekt.tooling.api.spec.RulesSpec
-import dev.detekt.tooling.api.spec.RulesSpec.FailurePolicy.FailOnSeverity
-import dev.detekt.tooling.api.spec.RulesSpec.FailurePolicy.NeverFail
-import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.JvmTarget
-import org.jetbrains.kotlin.config.LanguageVersion
-import java.net.URL
-import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.notExists
@@ -24,7 +16,7 @@ import com.github.ajalt.clikt.parameters.arguments.multiple as multipleArguments
 import com.github.ajalt.clikt.parameters.options.multiple as multipleOptions
 
 @Suppress("ThrowsCount")
-fun parseArguments(args: Array<out String>): ParsedCliArguments {
+fun parseArguments(args: Array<out String>): CliArgs {
     val parser = DetektCliCommand()
     val usageText by lazy { parser.getFormattedHelp().orEmpty() }
 
@@ -43,48 +35,6 @@ fun parseArguments(args: Array<out String>): ParsedCliArguments {
     } catch (@Suppress("SwallowedException") ex: CliArgumentValidationException) {
         throw HandledArgumentViolation(ex.message, usageText)
     }
-}
-
-data class ParsedCliArguments(
-    val inputPaths: List<Path>,
-    val analysisMode: AnalysisMode,
-    val includes: String?,
-    val excludes: String?,
-    val config: List<Path>,
-    val configResource: List<URL>,
-    val generateConfig: Path?,
-    val plugins: List<Path>,
-    val parallel: Boolean,
-    val baseline: Path?,
-    val createBaseline: Boolean,
-    val reportPaths: List<ReportPath>,
-    val failOnSeverity: FailureSeverity,
-    val basePath: Path,
-    val disableDefaultRuleSets: Boolean,
-    val buildUponDefaultConfig: Boolean,
-    val allRules: Boolean,
-    val autoCorrect: Boolean,
-    val debug: Boolean,
-    val runRule: String?,
-    val classpath: List<Path>,
-    val apiVersion: ApiVersion?,
-    val languageVersion: LanguageVersion?,
-    val jvmTarget: JvmTarget,
-    val jdkHome: Path?,
-    val showVersion: Boolean,
-    val freeCompilerArgs: List<String>,
-) {
-    val failurePolicy: RulesSpec.FailurePolicy
-        get() {
-            return when (val minSeverity = failOnSeverity) {
-                FailureSeverity.Never -> NeverFail
-
-                FailureSeverity.Error,
-                FailureSeverity.Warning,
-                FailureSeverity.Info,
-                -> FailOnSeverity(minSeverity.toSeverity())
-            }
-        }
 }
 
 private class DetektCliCommand : CliktCommand(name = "detekt") {
@@ -121,7 +71,7 @@ private class DetektCliCommand : CliktCommand(name = "detekt") {
 
     override fun run() = Unit
 
-    fun toParsedArgs(): ParsedCliArguments {
+    fun toParsedArgs(): CliArgs {
         val parsedInput = input.flatMap(::splitOnCommaOrSemicolon)
         val inputPaths = if (parsedInput.isEmpty()) {
             listOf(Path(System.getProperty("user.dir")))
@@ -151,7 +101,7 @@ private class DetektCliCommand : CliktCommand(name = "detekt") {
         val parsedJdkHome = jdkHome?.let(::parsePath)
         parsedJdkHome?.let { validateDirectory("--jdk-home", it) }
 
-        return ParsedCliArguments(
+        return CliArgs(
             inputPaths = inputPaths,
             analysisMode = analysisMode.toAnalysisMode(),
             includes = includes,
@@ -183,7 +133,7 @@ private class DetektCliCommand : CliktCommand(name = "detekt") {
     }
 }
 
-private fun ParsedCliArguments.validate() {
+private fun CliArgs.validate() {
     var violation: String? = null
     val baseline = baseline
 
