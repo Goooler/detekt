@@ -1,19 +1,24 @@
 package dev.detekt.generator
 
-import com.beust.jcommander.JCommander
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.parse
+import com.github.ajalt.clikt.parameters.options.associate
+import com.github.ajalt.clikt.parameters.options.multiple
+import com.github.ajalt.clikt.parameters.options.option
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.nio.file.Path
+import kotlin.io.path.Path as pathOf
 
-class GeneratorArgsSpec {
+class GeneratorCliSpec {
     @Nested
     inner class TextReplacements {
 
-        private fun parse(vararg args: String): GeneratorArgs {
-            val options = GeneratorArgs()
-            val parser = JCommander(options)
-            parser.parse("-i", ".", *args)
-            return options
+        private fun parse(vararg args: String): ParsedOptions {
+            val parser = TestParser()
+            parser.parse(listOf("-i", ".", *args))
+            return parser.toOptions()
         }
 
         @Test
@@ -59,3 +64,19 @@ class GeneratorArgsSpec {
         }
     }
 }
+
+private class TestParser : CliktCommand(name = "test") {
+    override val printHelpOnEmptyArgs: Boolean = false
+    private val input by option("--input", "-i").multiple(required = true)
+    private val replacements by option("--replace", "-r").associate()
+
+    override fun run() = Unit
+
+    fun toOptions(): ParsedOptions =
+        ParsedOptions(
+            inputPaths = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::pathOf),
+            textReplacements = replacements,
+        )
+}
+
+private data class ParsedOptions(val inputPaths: List<Path>, val textReplacements: Map<String, String>)

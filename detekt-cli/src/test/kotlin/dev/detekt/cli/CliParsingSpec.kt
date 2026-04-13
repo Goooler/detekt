@@ -24,13 +24,13 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
 
-internal class CliArgsSpec {
+internal class CliParsingSpec {
 
     @Nested
     inner class `Parsing the input path` {
         private val pathBuildGradle = Path("build.gradle.kts").absolute()
         private val pathCliParser = Path("src/main/kotlin/dev/detekt/cli/JCommander.kt").absolute()
-        private val pathCliArgsSpec = Path("src/test/kotlin/dev/detekt/cli/CliArgsSpec.kt").absolute()
+        private val pathCliArgsSpec = Path("src/test/kotlin/dev/detekt/cli/CliParsingSpec.kt").absolute()
         private val pathAnalyzer =
             Path("../detekt-core/src/test/kotlin/dev/detekt/core/AnalyzerSpec.kt").absolute()
                 .normalize()

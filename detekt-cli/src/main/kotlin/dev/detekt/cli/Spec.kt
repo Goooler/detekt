@@ -63,7 +63,6 @@ internal fun CliArgs.createSpec(output: Appendable, error: Appendable): Processi
         }
 
         extensions {
-            disableDefaultRuleSets = args.disableDefaultRuleSets
             fromPaths { args.plugins }
         }
 

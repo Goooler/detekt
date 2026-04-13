@@ -17,7 +17,7 @@ val pluginsJarFiles by configurations.resolvable("pluginsJarFiles") {
 }
 
 dependencies {
-    implementation(libs.jcommander)
+    implementation(libs.clikt)
     implementation(projects.detektApi)
     implementation(projects.detektTooling)
     implementation(projects.detektUtils)
