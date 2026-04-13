@@ -9,8 +9,11 @@ import com.github.ajalt.clikt.parameters.options.associate
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import java.nio.file.Path
 import kotlin.system.exitProcess
-import kotlin.io.path.Path
+import kotlin.io.path.Path as pathOf
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
 
 fun main(args: Array<String>) {
     val parser = GeneratorCliktCommand()
@@ -20,11 +23,11 @@ fun main(args: Array<String>) {
         println(parser.getFormattedHelp().orEmpty())
         exitProcess(0)
     }
-    val options = parser.toGeneratorArgs()
+    val options = parser.toOptions()
     options.validate()
 
     val generator = Generator(
-        inputPaths = options.inputPath,
+        inputPaths = options.inputPaths,
         textReplacements = options.textReplacements,
         documentationPath = options.documentationPath,
         configPath = options.configPath,
@@ -46,16 +49,39 @@ private class GeneratorCliktCommand : CliktCommand(name = "detekt-generator") {
 
     override fun run() = Unit
 
-    fun toGeneratorArgs(): GeneratorArgs {
-        val args = GeneratorArgs()
-        args.inputPath = input
+    fun toOptions(): GeneratorOptions =
+        GeneratorOptions(
+            inputPaths = input
             .flatMap { it.split(',', ';') }
             .filter { it.isNotBlank() }
-            .map(::Path)
-        args.documentationPath = documentation?.let(::Path)
-        args.configPath = config?.let(::Path)
-        args.generateCustomRuleConfig = generateCustomRuleConfig
-        args.textReplacements = replacements
-        return args
+            .map(::pathOf),
+            documentationPath = documentation?.let(::pathOf),
+            configPath = config?.let(::pathOf),
+            generateCustomRuleConfig = generateCustomRuleConfig,
+            textReplacements = replacements,
+        )
+}
+
+private data class GeneratorOptions(
+    val inputPaths: List<Path>,
+    val documentationPath: Path?,
+    val configPath: Path?,
+    val generateCustomRuleConfig: Boolean,
+    val textReplacements: Map<String, String>,
+)
+
+private fun GeneratorOptions.validate() {
+    inputPaths.forEach {
+        if (!it.exists()) error("Input path does not exist: $it")
+    }
+    documentationPath?.let {
+        if (it.exists() && !it.isDirectory()) {
+            error("Value passed to --documentation must be a directory.")
+        }
+    }
+    configPath?.let {
+        if (it.exists() && !it.isDirectory()) {
+            error("Value passed to --config must be a directory.")
+        }
     }
 }

@@ -10,14 +10,14 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
-class GeneratorArgsSpec {
+class GeneratorCliSpec {
     @Nested
     inner class TextReplacements {
 
-        private fun parse(vararg args: String): GeneratorArgs {
+        private fun parse(vararg args: String): ParsedOptions {
             val parser = TestParser()
             parser.parse(listOf("-i", ".", *args))
-            return parser.toGeneratorArgs()
+            return parser.toOptions()
         }
 
         @Test
@@ -71,10 +71,13 @@ private class TestParser : CliktCommand(name = "test") {
 
     override fun run() = Unit
 
-    fun toGeneratorArgs(): GeneratorArgs {
-        val args = GeneratorArgs()
-        args.inputPath = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::Path)
-        args.textReplacements = replacements
-        return args
-    }
+    fun toOptions(): ParsedOptions = ParsedOptions(
+        inputPaths = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::Path),
+        textReplacements = replacements,
+    )
 }
+
+private data class ParsedOptions(
+    val inputPaths: List<java.nio.file.Path>,
+    val textReplacements: Map<String, String>,
+)
