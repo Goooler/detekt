@@ -1,84 +1,73 @@
 package dev.detekt.cli
 
-import com.beust.jcommander.IStringConverter
-import com.beust.jcommander.IValueValidator
-import com.beust.jcommander.ParameterException
-import com.beust.jcommander.converters.IParameterSplitter
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.LanguageVersion
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
+import java.nio.file.InvalidPathException
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
+import kotlin.io.path.Path
 
-class ApiVersionConverter : IStringConverter<ApiVersion> {
-    override fun convert(value: String): ApiVersion {
-        val languageVersion = LanguageVersion.fromFullVersionString(value)
-        requireNotNull(languageVersion) {
-            val validValues = LanguageVersion.entries.joinToString { it.toString() }
-            "\"$value\" passed to --api-version, expected one of [$validValues]"
-        }
-        return ApiVersion.createByLanguageVersion(languageVersion)
+internal class CliArgumentValidationException(message: String) : RuntimeException(message)
+
+internal fun parseApiVersion(value: String): ApiVersion {
+    val languageVersion = LanguageVersion.fromFullVersionString(value)
+    requireNotNull(languageVersion) {
+        val validValues = LanguageVersion.entries.joinToString { it.toString() }
+        "\"$value\" passed to --api-version, expected one of [$validValues]"
+    }
+    return ApiVersion.createByLanguageVersion(languageVersion)
+}
+
+internal fun parseLanguageVersion(value: String): LanguageVersion =
+    requireNotNull(LanguageVersion.fromFullVersionString(value)) {
+        val validValues = LanguageVersion.entries.joinToString { it.toString() }
+        "\"$value\" passed to --language-version, expected one of [$validValues]"
+    }
+
+internal fun parseJvmTarget(value: String): JvmTarget =
+    checkNotNull(JvmTarget.fromString(value)) {
+        val validValues = JvmTarget.entries.joinToString { it.toString() }
+        "Invalid value passed to --jvm-target, expected one of [$validValues]"
+    }
+
+internal fun parseClasspathResource(resource: String): URL {
+    val relativeResource = if (resource.startsWith("/")) resource else "/$resource"
+    return object {}.javaClass.getResource(relativeResource)
+    ?: throw CliArgumentValidationException("Classpath resource '$resource' does not exist!")
+}
+
+internal fun parseFailureSeverity(value: String): FailureSeverity = FailureSeverity.fromString(value)
+
+internal fun parseReportPath(value: String): ReportPath =
+    try {
+        ReportPath.from(value)
+    } catch (e: IllegalArgumentException) {
+        throw CliArgumentValidationException(e.message.orEmpty())
+    }
+
+internal fun splitOnCommaOrSemicolon(raw: String): List<String> =
+    raw.split(',', ';').filter { it.isNotBlank() }
+
+internal fun splitOnSystemPathSeparator(raw: String): List<String> =
+    raw.split(File.pathSeparatorChar).filter { it.isNotBlank() }
+
+internal fun parsePath(value: String): Path =
+    try {
+        Path(value)
+    } catch (e: InvalidPathException) {
+        throw CliArgumentValidationException(e.message.orEmpty())
+    }
+
+internal fun validateExistingPaths(name: String, value: List<Path>) {
+    value.forEach {
+        if (!it.exists()) throw CliArgumentValidationException("Path '$it' passed to $name does not exist.")
     }
 }
 
-class LanguageVersionConverter : IStringConverter<LanguageVersion> {
-    override fun convert(value: String): LanguageVersion =
-        requireNotNull(LanguageVersion.fromFullVersionString(value)) {
-            val validValues = LanguageVersion.entries.joinToString { it.toString() }
-            "\"$value\" passed to --language-version, expected one of [$validValues]"
-        }
-}
-
-class JvmTargetConverter : IStringConverter<JvmTarget> {
-    override fun convert(value: String): JvmTarget =
-        checkNotNull(JvmTarget.fromString(value)) {
-            val validValues = JvmTarget.entries.joinToString { it.toString() }
-            "Invalid value passed to --jvm-target, expected one of [$validValues]"
-        }
-}
-
-class ClasspathResourceConverter : IStringConverter<URL> {
-    override fun convert(resource: String): URL {
-        val relativeResource = if (resource.startsWith("/")) resource else "/$resource"
-        return javaClass.getResource(relativeResource)
-            ?: throw ParameterException("Classpath resource '$resource' does not exist!")
-    }
-}
-
-class FailureSeverityConverter : IStringConverter<FailureSeverity> {
-    override fun convert(value: String): FailureSeverity = FailureSeverity.fromString(value)
-}
-
-class ReportPathConverter : IStringConverter<ReportPath> {
-    override fun convert(value: String): ReportPath =
-        try {
-            ReportPath.from(value)
-        } catch (e: IllegalArgumentException) {
-            throw ParameterException(e.message, e)
-        }
-}
-
-class PathSplitter : IParameterSplitter {
-    override fun split(value: String): List<String> = value.split(',', ';')
-}
-
-class PathValidator : IValueValidator<List<Path>> {
-    override fun validate(name: String, value: List<Path>) {
-        value.forEach {
-            if (!it.exists()) throw ParameterException("Path '$it' passed to $name does not exist.")
-        }
-    }
-}
-
-class ClassPathSplitter : IParameterSplitter {
-    override fun split(value: String): List<String> = value.split(File.pathSeparatorChar)
-}
-
-class DirectoryValidator : IValueValidator<Path> {
-    override fun validate(name: String, value: Path) {
-        if (!value.isDirectory()) throw ParameterException("Value passed to $name must be a directory.")
-    }
+internal fun validateDirectory(name: String, value: Path) {
+    if (!value.isDirectory()) throw CliArgumentValidationException("Value passed to $name must be a directory.")
 }

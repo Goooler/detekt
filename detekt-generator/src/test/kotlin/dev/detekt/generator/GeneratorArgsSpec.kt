@@ -1,6 +1,11 @@
 package dev.detekt.generator
 
-import com.beust.jcommander.JCommander
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.parse
+import com.github.ajalt.clikt.parameters.options.associate
+import com.github.ajalt.clikt.parameters.options.multiple
+import com.github.ajalt.clikt.parameters.options.option
+import kotlin.io.path.Path
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -10,10 +15,9 @@ class GeneratorArgsSpec {
     inner class TextReplacements {
 
         private fun parse(vararg args: String): GeneratorArgs {
-            val options = GeneratorArgs()
-            val parser = JCommander(options)
-            parser.parse("-i", ".", *args)
-            return options
+            val parser = TestParser()
+            parser.parse(listOf("-i", ".", *args))
+            return parser.toGeneratorArgs()
         }
 
         @Test
@@ -57,5 +61,20 @@ class GeneratorArgsSpec {
             )
             assertThat(options.textReplacements).containsExactlyEntriesOf(expected)
         }
+    }
+}
+
+private class TestParser : CliktCommand(name = "test") {
+    override val printHelpOnEmptyArgs: Boolean = false
+    private val input by option("--input", "-i").multiple(required = true)
+    private val replacements by option("--replace", "-r").associate()
+
+    override fun run() = Unit
+
+    fun toGeneratorArgs(): GeneratorArgs {
+        val args = GeneratorArgs()
+        args.inputPath = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::Path)
+        args.textReplacements = replacements
+        return args
     }
 }
