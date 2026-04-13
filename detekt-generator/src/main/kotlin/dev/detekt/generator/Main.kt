@@ -9,7 +9,6 @@ import com.github.ajalt.clikt.parameters.options.associate
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
-import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.system.exitProcess
@@ -49,8 +48,8 @@ private class GeneratorCliktCommand : CliktCommand(name = "detekt-generator") {
 
     override fun run() = Unit
 
-    fun toOptions(): GeneratorOptions =
-        GeneratorOptions(
+    fun toOptions(): GeneratorArgs =
+        GeneratorArgs(
             inputPaths = input
                 .flatMap { it.split(',', ';') }
                 .filter { it.isNotBlank() }
@@ -62,15 +61,7 @@ private class GeneratorCliktCommand : CliktCommand(name = "detekt-generator") {
         )
 }
 
-private data class GeneratorOptions(
-    val inputPaths: List<Path>,
-    val documentationPath: Path?,
-    val configPath: Path?,
-    val generateCustomRuleConfig: Boolean,
-    val textReplacements: Map<String, String>,
-)
-
-private fun GeneratorOptions.validate() {
+private fun GeneratorArgs.validate() {
     inputPaths.forEach {
         if (!it.exists()) error("Input path does not exist: $it")
     }
