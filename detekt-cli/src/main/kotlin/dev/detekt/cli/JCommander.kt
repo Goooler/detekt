@@ -5,10 +5,8 @@ import com.github.ajalt.clikt.core.PrintHelpMessage
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.arguments.multiple as multipleArguments
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.multiple as multipleOptions
 import com.github.ajalt.clikt.parameters.options.option
 import dev.detekt.tooling.api.AnalysisMode
 import dev.detekt.tooling.api.spec.RulesSpec
@@ -22,14 +20,17 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.notExists
+import com.github.ajalt.clikt.parameters.arguments.multiple as multipleArguments
+import com.github.ajalt.clikt.parameters.options.multiple as multipleOptions
 
+@Suppress("ThrowsCount")
 fun parseArguments(args: Array<out String>): ParsedCliArguments {
     val parser = DetektCliCommand()
     val usageText by lazy { parser.getFormattedHelp().orEmpty() }
 
     try {
         parser.parse(args.map { it })
-    } catch (ex: PrintHelpMessage) {
+    } catch (@Suppress("SwallowedException") ex: PrintHelpMessage) {
         throw HelpRequest(usageText)
     } catch (@Suppress("SwallowedException") ex: UsageError) {
         throw HandledArgumentViolation(ex.message, usageText)
@@ -39,7 +40,7 @@ fun parseArguments(args: Array<out String>): ParsedCliArguments {
         parser.toParsedArgs().apply { validate() }
     } catch (ex: HandledArgumentViolation) {
         throw ex
-    } catch (ex: CliArgumentValidationException) {
+    } catch (@Suppress("SwallowedException") ex: CliArgumentValidationException) {
         throw HandledArgumentViolation(ex.message, usageText)
     }
 }

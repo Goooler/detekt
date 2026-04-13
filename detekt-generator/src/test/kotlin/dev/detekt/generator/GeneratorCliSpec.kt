@@ -5,10 +5,11 @@ import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.options.associate
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
-import kotlin.io.path.Path
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.nio.file.Path
+import kotlin.io.path.Path as pathOf
 
 class GeneratorCliSpec {
     @Nested
@@ -71,13 +72,11 @@ private class TestParser : CliktCommand(name = "test") {
 
     override fun run() = Unit
 
-    fun toOptions(): ParsedOptions = ParsedOptions(
-        inputPaths = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::Path),
-        textReplacements = replacements,
-    )
+    fun toOptions(): ParsedOptions =
+        ParsedOptions(
+            inputPaths = input.flatMap { it.split(',', ';') }.filter { it.isNotBlank() }.map(::pathOf),
+            textReplacements = replacements,
+        )
 }
 
-private data class ParsedOptions(
-    val inputPaths: List<java.nio.file.Path>,
-    val textReplacements: Map<String, String>,
-)
+private data class ParsedOptions(val inputPaths: List<Path>, val textReplacements: Map<String, String>)

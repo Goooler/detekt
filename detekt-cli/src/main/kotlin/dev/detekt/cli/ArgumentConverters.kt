@@ -5,13 +5,11 @@ import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.LanguageVersion
 import java.io.File
 import java.net.URL
-import java.nio.file.Path
 import java.nio.file.InvalidPathException
+import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
-import kotlin.io.path.Path
-
-internal class CliArgumentValidationException(message: String) : RuntimeException(message)
 
 internal fun parseApiVersion(value: String): ApiVersion {
     val languageVersion = LanguageVersion.fromFullVersionString(value)
@@ -37,7 +35,7 @@ internal fun parseJvmTarget(value: String): JvmTarget =
 internal fun parseClasspathResource(resource: String): URL {
     val relativeResource = if (resource.startsWith("/")) resource else "/$resource"
     return object {}.javaClass.getResource(relativeResource)
-    ?: throw CliArgumentValidationException("Classpath resource '$resource' does not exist!")
+        ?: throw CliArgumentValidationException("Classpath resource '$resource' does not exist!")
 }
 
 internal fun parseFailureSeverity(value: String): FailureSeverity = FailureSeverity.fromString(value)
@@ -46,11 +44,10 @@ internal fun parseReportPath(value: String): ReportPath =
     try {
         ReportPath.from(value)
     } catch (e: IllegalArgumentException) {
-        throw CliArgumentValidationException(e.message.orEmpty())
+        throw CliArgumentValidationException(e.message.orEmpty(), e)
     }
 
-internal fun splitOnCommaOrSemicolon(raw: String): List<String> =
-    raw.split(',', ';').filter { it.isNotBlank() }
+internal fun splitOnCommaOrSemicolon(raw: String): List<String> = raw.split(',', ';').filter { it.isNotBlank() }
 
 internal fun splitOnSystemPathSeparator(raw: String): List<String> =
     raw.split(File.pathSeparatorChar).filter { it.isNotBlank() }
@@ -59,7 +56,7 @@ internal fun parsePath(value: String): Path =
     try {
         Path(value)
     } catch (e: InvalidPathException) {
-        throw CliArgumentValidationException(e.message.orEmpty())
+        throw CliArgumentValidationException(e.message.orEmpty(), e)
     }
 
 internal fun validateExistingPaths(name: String, value: List<Path>) {

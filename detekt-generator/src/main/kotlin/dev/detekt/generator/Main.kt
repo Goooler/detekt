@@ -10,17 +10,17 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import java.nio.file.Path
-import kotlin.system.exitProcess
-import kotlin.io.path.Path as pathOf
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
+import kotlin.system.exitProcess
+import kotlin.io.path.Path as pathOf
 
 fun main(args: Array<String>) {
     val parser = GeneratorCliktCommand()
     try {
         parser.parse(args)
-    } catch (ex: PrintHelpMessage) {
-        println(parser.getFormattedHelp().orEmpty())
+    } catch (@Suppress("SwallowedException") ex: PrintHelpMessage) {
+        System.out.appendLine(parser.getFormattedHelp().orEmpty())
         exitProcess(0)
     }
     val options = parser.toOptions()
@@ -52,9 +52,9 @@ private class GeneratorCliktCommand : CliktCommand(name = "detekt-generator") {
     fun toOptions(): GeneratorOptions =
         GeneratorOptions(
             inputPaths = input
-            .flatMap { it.split(',', ';') }
-            .filter { it.isNotBlank() }
-            .map(::pathOf),
+                .flatMap { it.split(',', ';') }
+                .filter { it.isNotBlank() }
+                .map(::pathOf),
             documentationPath = documentation?.let(::pathOf),
             configPath = config?.let(::pathOf),
             generateCustomRuleConfig = generateCustomRuleConfig,
