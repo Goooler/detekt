@@ -10,10 +10,20 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple as multipleOptions
 import com.github.ajalt.clikt.parameters.options.option
+import dev.detekt.tooling.api.AnalysisMode
+import dev.detekt.tooling.api.spec.RulesSpec
+import dev.detekt.tooling.api.spec.RulesSpec.FailurePolicy.FailOnSeverity
+import dev.detekt.tooling.api.spec.RulesSpec.FailurePolicy.NeverFail
+import org.jetbrains.kotlin.config.ApiVersion
+import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.config.LanguageVersion
+import java.net.URL
+import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.notExists
 
-fun parseArguments(args: Array<out String>): CliArgs {
+fun parseArguments(args: Array<out String>): ParsedCliArguments {
     val parser = DetektCliCommand()
     val usageText by lazy { parser.getFormattedHelp().orEmpty() }
 
@@ -26,12 +36,54 @@ fun parseArguments(args: Array<out String>): CliArgs {
     }
 
     return try {
-        parser.toCliArgs().apply { validate() }
+        parser.toParsedArgs().apply { validate() }
     } catch (ex: HandledArgumentViolation) {
         throw ex
     } catch (ex: CliArgumentValidationException) {
         throw HandledArgumentViolation(ex.message, usageText)
     }
+}
+
+data class ParsedCliArguments(
+    val inputPaths: List<Path>,
+    val analysisMode: AnalysisMode,
+    val includes: String?,
+    val excludes: String?,
+    val config: List<Path>,
+    val configResource: List<URL>,
+    val generateConfig: Path?,
+    val plugins: List<Path>,
+    val parallel: Boolean,
+    val baseline: Path?,
+    val createBaseline: Boolean,
+    val reportPaths: List<ReportPath>,
+    val failOnSeverity: FailureSeverity,
+    val basePath: Path,
+    val disableDefaultRuleSets: Boolean,
+    val buildUponDefaultConfig: Boolean,
+    val allRules: Boolean,
+    val autoCorrect: Boolean,
+    val debug: Boolean,
+    val runRule: String?,
+    val classpath: List<Path>,
+    val apiVersion: ApiVersion?,
+    val languageVersion: LanguageVersion?,
+    val jvmTarget: JvmTarget,
+    val jdkHome: Path?,
+    val showVersion: Boolean,
+    val freeCompilerArgs: List<String>,
+) {
+    val failurePolicy: RulesSpec.FailurePolicy
+        get() {
+            return when (val minSeverity = failOnSeverity) {
+                FailureSeverity.Never -> NeverFail
+
+                FailureSeverity.Error,
+                FailureSeverity.Warning,
+                FailureSeverity.Info,
+                -> FailOnSeverity(minSeverity.toSeverity())
+            }
+        }
 }
 
 private class DetektCliCommand : CliktCommand(name = "detekt") {
@@ -68,61 +120,69 @@ private class DetektCliCommand : CliktCommand(name = "detekt") {
 
     override fun run() = Unit
 
-    fun toCliArgs(): CliArgs {
-        val cliArgs = CliArgs()
-
+    fun toParsedArgs(): ParsedCliArguments {
         val parsedInput = input.flatMap(::splitOnCommaOrSemicolon)
-        cliArgs.inputPaths = if (parsedInput.isEmpty()) cliArgs.inputPaths else parsedInput.map(::parsePath)
-        validateExistingPaths("--input", cliArgs.inputPaths)
+        val inputPaths = if (parsedInput.isEmpty()) {
+            listOf(Path(System.getProperty("user.dir")))
+        } else {
+            parsedInput.map(::parsePath)
+        }
+        validateExistingPaths("--input", inputPaths)
 
-        cliArgs.analysisMode = analysisMode.toAnalysisMode()
-        cliArgs.includes = includes
-        cliArgs.excludes = excludes
+        val parsedConfig = config.flatMap(::splitOnCommaOrSemicolon).map(::parsePath)
+        validateExistingPaths("--config", parsedConfig)
 
-        cliArgs.config = config.flatMap(::splitOnCommaOrSemicolon).map(::parsePath)
-        validateExistingPaths("--config", cliArgs.config)
-
-        cliArgs.configResource = configResource
+        val parsedResources = configResource
             .flatMap(::splitOnCommaOrSemicolon)
             .map(::parseClasspathResource)
 
-        cliArgs.generateConfig = generateConfig?.let(::parsePath)
+        val parsedGenerateConfig = generateConfig?.let(::parsePath)
 
-        cliArgs.plugins = plugins.flatMap(::splitOnCommaOrSemicolon).map(::parsePath)
-        validateExistingPaths("--plugins", cliArgs.plugins)
+        val parsedPlugins = plugins.flatMap(::splitOnCommaOrSemicolon).map(::parsePath)
+        validateExistingPaths("--plugins", parsedPlugins)
 
-        cliArgs.parallel = parallel
-        cliArgs.baseline = baseline?.let(::parsePath)
-        cliArgs.createBaseline = createBaseline
-        cliArgs.reportPaths = reportPaths.map(::parseReportPath)
-        cliArgs.failOnSeverity = failOnSeverity?.let(::parseFailureSeverity) ?: FailureSeverity.Error
+        val parsedBasePath = basePath?.let(::parsePath) ?: Path(System.getProperty("user.dir"))
+        validateDirectory("--base-path", parsedBasePath)
 
-        cliArgs.basePath = basePath?.let(::parsePath) ?: cliArgs.basePath
-        validateDirectory("--base-path", cliArgs.basePath)
+        val parsedClasspath = classpath.flatMap(::splitOnSystemPathSeparator).map(::parsePath)
+        validateExistingPaths("--classpath", parsedClasspath)
 
-        cliArgs.disableDefaultRuleSets = disableDefaultRuleSets
-        cliArgs.buildUponDefaultConfig = buildUponDefaultConfig
-        cliArgs.allRules = allRules
-        cliArgs.autoCorrect = autoCorrect
-        cliArgs.debug = debug
-        cliArgs.runRule = runRule
+        val parsedJdkHome = jdkHome?.let(::parsePath)
+        parsedJdkHome?.let { validateDirectory("--jdk-home", it) }
 
-        cliArgs.classpath = classpath.flatMap(::splitOnSystemPathSeparator).map(::parsePath)
-        validateExistingPaths("--classpath", cliArgs.classpath)
-
-        cliArgs.apiVersion = apiVersion?.let(::parseApiVersion)
-        cliArgs.languageVersion = languageVersion?.let(::parseLanguageVersion)
-        cliArgs.jvmTarget = jvmTarget?.let(::parseJvmTarget) ?: cliArgs.jvmTarget
-        cliArgs.jdkHome = jdkHome?.let(::parsePath)
-        cliArgs.jdkHome?.let { validateDirectory("--jdk-home", it) }
-        cliArgs.showVersion = showVersion
-        cliArgs.freeCompilerArgs = freeCompilerArgs
-
-        return cliArgs
+        return ParsedCliArguments(
+            inputPaths = inputPaths,
+            analysisMode = analysisMode.toAnalysisMode(),
+            includes = includes,
+            excludes = excludes,
+            config = parsedConfig,
+            configResource = parsedResources,
+            generateConfig = parsedGenerateConfig,
+            plugins = parsedPlugins,
+            parallel = parallel,
+            baseline = baseline?.let(::parsePath),
+            createBaseline = createBaseline,
+            reportPaths = reportPaths.map(::parseReportPath),
+            failOnSeverity = failOnSeverity?.let(::parseFailureSeverity) ?: FailureSeverity.Error,
+            basePath = parsedBasePath,
+            disableDefaultRuleSets = disableDefaultRuleSets,
+            buildUponDefaultConfig = buildUponDefaultConfig,
+            allRules = allRules,
+            autoCorrect = autoCorrect,
+            debug = debug,
+            runRule = runRule,
+            classpath = parsedClasspath,
+            apiVersion = apiVersion?.let(::parseApiVersion),
+            languageVersion = languageVersion?.let(::parseLanguageVersion),
+            jvmTarget = jvmTarget?.let(::parseJvmTarget) ?: JvmTarget.DEFAULT,
+            jdkHome = parsedJdkHome,
+            showVersion = showVersion,
+            freeCompilerArgs = freeCompilerArgs,
+        )
     }
 }
 
-private fun CliArgs.validate() {
+private fun ParsedCliArguments.validate() {
     var violation: String? = null
     val baseline = baseline
 

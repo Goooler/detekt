@@ -24,13 +24,13 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
 
-internal class CliArgsSpec {
+internal class CliParsingSpec {
 
     @Nested
     inner class `Parsing the input path` {
         private val pathBuildGradle = Path("build.gradle.kts").absolute()
-        private val pathCliArgs = Path("src/main/kotlin/dev/detekt/cli/CliArgs.kt").absolute()
-        private val pathCliArgsSpec = Path("src/test/kotlin/dev/detekt/cli/CliArgsSpec.kt").absolute()
+        private val pathCliParser = Path("src/main/kotlin/dev/detekt/cli/JCommander.kt").absolute()
+        private val pathCliArgsSpec = Path("src/test/kotlin/dev/detekt/cli/CliParsingSpec.kt").absolute()
         private val pathAnalyzer =
             Path("../detekt-core/src/test/kotlin/dev/detekt/core/AnalyzerSpec.kt").absolute()
                 .normalize()
@@ -42,7 +42,7 @@ internal class CliArgsSpec {
 
             assertThat(spec.projectSpec.inputPaths).allSatisfy { it.absolute().startsWith(workingDir) }
             assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-            assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+            assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
             assertThat(spec.projectSpec.inputPaths).contains(pathCliArgsSpec)
         }
 
@@ -58,7 +58,7 @@ internal class CliArgsSpec {
             val spec = parseArguments(arrayOf("--input", param)).toSpec()
 
             assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-            assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+            assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
             assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliArgsSpec)
             assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
         }
@@ -93,7 +93,7 @@ internal class CliArgsSpec {
                 val spec = parseArguments(input).toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-                assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).contains(pathMain)
                 assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
             }
@@ -103,7 +103,7 @@ internal class CliArgsSpec {
                 val spec = parseArguments(input + arrayOf("--excludes", "**/test/**")).toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-                assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).contains(pathMain)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathAnalyzer)
             }
@@ -113,7 +113,7 @@ internal class CliArgsSpec {
                 val spec = parseArguments(input + arrayOf("--includes", "**/test/**")).toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathBuildGradle)
-                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathMain)
                 assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
             }
@@ -131,7 +131,7 @@ internal class CliArgsSpec {
                 val spec = parseArguments(input + arrayOf("--excludes", "src/main/kotlin/**")).toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathMain)
                 assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
             }
@@ -140,7 +140,7 @@ internal class CliArgsSpec {
             fun `includes and excludes with overlapping patterns - include specific files`() {
                 val spec = parseArguments(input + arrayOf("--includes", "**/*.kt", "--excludes", "**/test/**")).toSpec()
 
-                assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).contains(pathMain)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathAnalyzer)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliArgsSpec)
@@ -158,7 +158,7 @@ internal class CliArgsSpec {
                     )
                 ).toSpec()
 
-                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).doesNotContain(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).doesNotContain(pathMain)
                 assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
             }
@@ -197,14 +197,14 @@ internal class CliArgsSpec {
                     parseArguments(input + arrayOf("--excludes", "/home/**,/Users/**")).toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).contains(pathBuildGradle)
-                assertThat(spec.projectSpec.inputPaths).contains(pathCliArgs)
+                assertThat(spec.projectSpec.inputPaths).contains(pathCliParser)
                 assertThat(spec.projectSpec.inputPaths).contains(pathMain)
                 assertThat(spec.projectSpec.inputPaths).contains(pathAnalyzer)
             }
 
             @Test
             fun `excludes main but includes one file`() {
-                val spec = parseArguments(input + arrayOf("--excludes", "**/main/**", "--includes", "**/CliArgs.kt"))
+                val spec = parseArguments(input + arrayOf("--excludes", "**/main/**", "--includes", "**/JCommander.kt"))
                     .toSpec()
 
                 assertThat(spec.projectSpec.inputPaths).isEmpty()
@@ -494,4 +494,4 @@ internal class CliArgsSpec {
     }
 }
 
-private fun CliArgs.toSpec() = createSpec(NullPrintStream(), NullPrintStream())
+private fun ParsedCliArguments.toSpec() = createSpec(NullPrintStream(), NullPrintStream())
