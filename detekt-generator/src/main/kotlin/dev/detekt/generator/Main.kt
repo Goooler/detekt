@@ -2,19 +2,11 @@
 
 package dev.detekt.generator
 
-import com.beust.jcommander.JCommander
-import kotlin.system.exitProcess
+import com.github.ajalt.clikt.core.main
 
-@Suppress("detekt.SpreadOperator")
 fun main(args: Array<String>) {
     val options = GeneratorArgs()
-    val parser = JCommander(options)
-    parser.parse(*args)
-
-    if (options.help) {
-        parser.usage()
-        exitProcess(0)
-    }
+    options.main(args)
 
     val generator = Generator(
         inputPaths = options.inputPath,
